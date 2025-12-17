@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>학술 논문 추천 시스템 - PDF Research Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'NanumSquareNeo', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #2d3748;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+            padding: 2rem 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .update-time {
+            margin-left: auto;
+            font-size: 0.875rem;
+            color: #a0aec0;
+            font-weight: 500;
+        }
+
+        .controls {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+        }
+
+        .filter-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .filter-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 0.75rem;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .journal-filters {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            margin-bottom: 1.5rem;
+        }
+
+        .journal-btn {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--journal-color, #e2e8f0);
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background-color: #ffffff;
+            color: #4a5568;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .journal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: var(--journal-color, #667eea);
+            background-color: rgba(255, 255, 255, 0.95);
+        }
+
+        .journal-btn.active {
+            background: var(--journal-color, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .journal-btn .count {
+            margin-left: 0.5rem;
+            padding: 0.125rem 0.5rem;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            font-size: 0.75rem;
+        }
+
+        .controls-inner {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #4a5568;
+        }
+
+        select, button {
+            padding: 0.625rem 1.25rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            background-color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        select {
+            min-width: 150px;
+        }
+
+        select:hover, select:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        button:disabled {
+            background: #cbd5e0;
+            border-color: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .stats {
+            display: flex;
+            gap: 1rem;
+            margin-left: auto;
+            font-size: 0.875rem;
+            color: #718096;
+        }
+
+        .stat-item {
+            padding: 0.5rem 1rem;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 0.5rem;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .papers-grid {
+            display: grid;
+            gap: 1.5rem;
+            padding-bottom: 3rem;
+        }
+
+        /* Timeline styles */
+        .timeline-group {
+            margin-bottom: 3rem;
+        }
+
+        .timeline-date {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .timeline-date-icon {
+            font-size: 1.5rem;
+        }
+
+        .timeline-date-text {
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .timeline-date-count {
+            margin-left: auto;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .timeline-papers {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .paper-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(226, 232, 240, 0.5);
+            border-radius: 1rem;
+            padding: 2rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .paper-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .paper-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .paper-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.15);
+            transform: translateY(-4px);
+        }
+
+        .paper-header {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .paper-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .badge-highly-relevant {
+            background-color: #48bb78;
+            color: white;
+        }
+
+        .badge-relevant {
+            background-color: #4299e1;
+            color: white;
+        }
+
+        .badge-moderate {
+            background-color: #718096;
+            color: white;
+        }
+
+        .badge-confirmed {
+            background-color: #38a169;
+            color: white;
+        }
+
+        .badge-dismissed {
+            background-color: #a0aec0;
+            color: white;
+        }
+
+        .paper-score {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .paper-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .paper-meta {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            color: #4a5568;
+        }
+
+        .paper-journal {
+            font-weight: 600;
+            padding: 0.25rem 0.75rem;
+            background-color: var(--journal-bg, #ecf0f1);
+            color: var(--journal-color, #2c3e50);
+            border-radius: 0.5rem;
+            display: inline-block;
+        }
+
+        .paper-year {
+            color: #718096;
+        }
+
+        .paper-keywords {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.75rem;
+        }
+
+        .keyword-tag {
+            padding: 0.25rem 0.625rem;
+            background-color: #edf2f7;
+            color: #4a5568;
+            border-radius: 0.625rem;
+            font-size: 0.75rem;
+        }
+
+        .paper-abstract {
+            color: #718096;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        .paper-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            padding: 0.375rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-confirm {
+            background-color: #48bb78;
+            color: white;
+        }
+
+        .btn-confirm:hover {
+            background-color: #38a169;
+        }
+
+        .btn-dismiss {
+            background-color: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn-dismiss:hover {
+            background-color: #cbd5e0;
+        }
+
+        .btn-doi {
+            background-color: #3182ce;
+            color: white;
+        }
+
+        .btn-doi:hover {
+            background-color: #2c5282;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 4rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            margin: 2rem 0;
+        }
+
+        .spinner {
+            border: 4px solid rgba(102, 126, 234, 0.1);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+            margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 1.125rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 1rem;
+            margin: 2rem 0;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .empty-state-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 0.75rem;
+        }
+
+        .empty-state-hint {
+            font-size: 0.875rem;
+            color: #a0aec0;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+
+            h1 {
+                font-size: 1.75rem;
+            }
+
+            .subtitle {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .update-time {
+                margin-left: 0;
+            }
+
+            .journal-filters {
+                gap: 0.5rem;
+            }
+
+            .journal-btn {
+                padding: 0.625rem 1.25rem;
+                font-size: 0.8rem;
+            }
+
+            .controls-inner {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .control-group {
+                width: 100%;
+            }
+
+            select, button {
+                width: 100%;
+            }
+
+            .stats {
+                margin-left: 0;
+                width: 100%;
+                justify-content: center;
+            }
+
+            .paper-card {
+                padding: 1.5rem;
+            }
+
+            .paper-title {
+                font-size: 1rem;
+            }
+
+            .paper-actions {
+                flex-direction: column;
+            }
+
+            .action-btn {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header {
+                padding: 1.5rem 0;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .filter-label {
+                font-size: 0.75rem;
+            }
+
+            .journal-btn {
+                font-size: 0.75rem;
+                padding: 0.5rem 1rem;
+            }
+
+            .paper-card {
+                padding: 1.25rem;
+            }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: 4rem;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .footer-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .footer-name {
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.7);
+            margin-bottom: 0.25rem;
+        }
+
+        .footer-affiliation {
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-email {
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer-email:hover {
+            color: rgba(255, 255, 255, 0.9);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>📚 학술 논문 추천 시스템</h1>
+            <div class="subtitle">
+                <span>타겟 저널의 키워드 기반 AI 논문 자동 추천</span>
+                <span class="update-time" id="last-update">마지막 업데이트: 로딩 중...</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="container">
+            <div class="filter-section">
+                <span class="filter-label">📁 저널별 필터</span>
+                <div class="journal-filters" id="journal-filters">
+                    <button class="journal-btn active" data-journal-id="" onclick="filterByJournal('')">
+                        전체 <span class="count" id="count-all">0</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="controls-inner">
+                <div class="control-group">
+                    <label for="keyword-filter">🔍 키워드:</label>
+                    <select id="keyword-filter">
+                        <option value="">전체</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="sort-select">📊 정렬:</label>
+                    <select id="sort-select">
+                        <option value="newest">최신순</option>
+                        <option value="oldest">오래된순</option>
+                    </select>
+                </div>
+
+                <button id="refresh-btn" onclick="refreshPapers()">🔄 새로고침</button>
+
+                <div class="stats">
+                    <div class="stat-item">
+                        <span id="paper-count">0개의 논문</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="papers-container" class="papers-grid">
+            <div class="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">논문을 불러오는 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let journals = [];
+        let keywords = [];
+        let papers = [];
+        let currentJournalId = '';
+        let journalCounts = {};
+        let currentOffset = 0;
+        let currentLimit = 20;
+        let isLoading = false;
+        let hasMore = true;
+
+        // Journal colors - assign unique colors to journals
+        const journalColors = [
+            '#e74c3c',  // Red
+            '#3498db',  // Blue
+            '#2ecc71',  // Green
+            '#f39c12',  // Orange
+            '#9b59b6',  // Purple
+            '#1abc9c',  // Turquoise
+            '#e67e22',  // Carrot
+            '#34495e',  // Dark gray
+            '#16a085',  // Green sea
+            '#c0392b',  // Dark red
+        ];
+        let journalColorMap = {};
+
+        // Initialize
+        async function init() {
+            await loadJournals();
+            await loadKeywords();
+            await loadPapers();
+            updateLastUpdateTime();
+        }
+
+        // Update last update time
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('ko-KR', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('last-update').textContent = `마지막 업데이트: ${timeStr}`;
+        }
+
+        // Filter by journal
+        function filterByJournal(journalId) {
+            currentJournalId = journalId;
+
+            // Update button states
+            document.querySelectorAll('.journal-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.journal-btn').classList.add('active');
+
+            loadPapers();
+        }
+
+        // Load journals
+        async function loadJournals() {
+            try {
+                const response = await fetch('/api/journals');
+                const data = await response.json();
+
+                if (data.success) {
+                    journals = data.journals;
+
+                    // Create journal filter buttons
+                    const container = document.getElementById('journal-filters');
+
+                    // Get paper counts per journal
+                    await updateJournalCounts();
+
+                    journals.forEach((journal, index) => {
+                        const count = journalCounts[journal.journal_id] || 0;
+
+                        // Assign color to journal
+                        const color = journalColors[index % journalColors.length];
+                        journalColorMap[journal.journal_id] = color;
+
+                        const btn = document.createElement('button');
+                        btn.className = 'journal-btn';
+                        btn.setAttribute('data-journal-id', journal.journal_id);
+                        btn.onclick = () => filterByJournal(journal.journal_id);
+                        btn.innerHTML = `${journal.journal_name} <span class="count">${count}</span>`;
+
+                        // Set custom border color when not active
+                        btn.style.setProperty('--journal-color', color);
+
+                        container.appendChild(btn);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load journals:', error);
+            }
+        }
+
+        // Update journal counts
+        async function updateJournalCounts() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
+
+                if (data.success && data.stats.by_journal) {
+                    data.stats.by_journal.forEach(item => {
+                        const journal = journals.find(j => j.journal_name === item.name);
+                        if (journal) {
+                            journalCounts[journal.journal_id] = item.count;
+                        }
+                    });
+
+                    // Update "All" count
+                    document.getElementById('count-all').textContent = data.stats.total || 0;
+
+                    // Update last update time from server
+                    if (data.stats.last_update) {
+                        const updateDate = new Date(data.stats.last_update);
+                        const timeStr = updateDate.toLocaleString('ko-KR', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                        document.getElementById('last-update').textContent = `마지막 업데이트: ${timeStr}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to update journal counts:', error);
+            }
+        }
+
+        // Load keywords
+        async function loadKeywords() {
+            try {
+                const response = await fetch('/api/keywords');
+                const data = await response.json();
+
+                if (data.success) {
+                    keywords = data.keywords;
+
+                    const select = document.getElementById('keyword-filter');
+                    keywords.forEach(keyword => {
+                        const option = document.createElement('option');
+                        option.value = keyword;
+                        option.textContent = keyword;
+                        select.appendChild(option);
+                    });
+
+                    select.addEventListener('change', loadPapers);
+                }
+            } catch (error) {
+                console.error('Failed to load keywords:', error);
+            }
+        }
+
+        // Load papers
+        async function loadPapers(append = false) {
+            if (isLoading) return;
+
+            try {
+                isLoading = true;
+
+                // Reset offset if not appending
+                if (!append) {
+                    currentOffset = 0;
+                    papers = [];
+                }
+
+                const keyword = document.getElementById('keyword-filter').value;
+                const sort = document.getElementById('sort-select').value;
+
+                let url = '/api/papers?';
+                if (currentJournalId) url += `journal_id=${currentJournalId}&`;
+                if (keyword) url += `keyword=${encodeURIComponent(keyword)}&`;
+                url += `sort=${sort}&`;
+                url += `limit=${currentLimit}&offset=${currentOffset}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success) {
+                    if (append) {
+                        papers = papers.concat(data.papers);
+                    } else {
+                        papers = data.papers;
+                    }
+
+                    // Update pagination info
+                    if (data.pagination) {
+                        hasMore = data.pagination.has_more;
+                        currentOffset += data.papers.length;
+                    }
+
+                    renderPapers();
+                    updateLastUpdateTime();
+                }
+            } catch (error) {
+                console.error('Failed to load papers:', error);
+                showError();
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        // Load more papers
+        async function loadMore() {
+            await loadPapers(true);
+        }
+
+        // Group papers by date for timeline view
+        function groupPapersByDate(papers) {
+            const groups = {};
+
+            papers.forEach(paper => {
+                // Use fetched_at (cached_at) for grouping
+                const date = new Date(paper.cached_at || paper.fetched_at);
+                const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+
+                if (!groups[dateKey]) {
+                    groups[dateKey] = [];
+                }
+                groups[dateKey].push(paper);
+            });
+
+            // Sort by date descending
+            const sorted = {};
+            Object.keys(groups)
+                .sort((a, b) => b.localeCompare(a))
+                .forEach(key => {
+                    sorted[key] = groups[key];
+                });
+
+            return sorted;
+        }
+
+        // Format date label for timeline
+        function formatDateLabel(dateKey) {
+            const date = new Date(dateKey);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            const todayStr = today.toISOString().split('T')[0];
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            if (dateKey === todayStr) {
+                return '오늘';
+            } else if (dateKey === yesterdayStr) {
+                return '어제';
+            } else {
+                const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' };
+                return date.toLocaleDateString('ko-KR', options);
+            }
+        }
+
+        // Render papers with timeline grouping
+        function renderPapers() {
+            const container = document.getElementById('papers-container');
+            const countEl = document.getElementById('paper-count');
+
+            countEl.textContent = `${papers.length}개의 논문`;
+
+            if (papers.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📚</div>
+                        <div class="empty-state-text">추천 논문이 없습니다</div>
+                        <div class="empty-state-hint">타겟 저널과 키워드를 설정하고 새로고침을 눌러주세요</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Group papers by date
+            const groupedPapers = groupPapersByDate(papers);
+
+            // Render papers grouped by date (timeline view)
+            let html = '';
+            for (const [dateKey, datePapers] of Object.entries(groupedPapers)) {
+                const dateLabel = formatDateLabel(dateKey);
+                html += `
+                    <div class="timeline-group">
+                        <div class="timeline-date">
+                            <span class="timeline-date-icon">📅</span>
+                            <span class="timeline-date-text">${dateLabel}</span>
+                            <span class="timeline-date-count">${datePapers.length}편</span>
+                        </div>
+                        <div class="timeline-papers">
+                            ${datePapers.map(paper => createPaperCard(paper)).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Add "Load More" button if there are more papers
+            if (hasMore && papers.length > 0) {
+                html += `
+                    <div style="text-align: center; padding: 2rem; margin-top: 2rem;">
+                        <button onclick="loadMore()" style="
+                            padding: 1rem 3rem;
+                            font-size: 1rem;
+                            font-weight: 600;
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 2rem;
+                            cursor: pointer;
+                            transition: all 0.3s;
+                        " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(102, 126, 234, 0.3)'"
+                        onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+                            📄 더 보기 (${papers.length}/${papers.length + (hasMore ? '+' : '')})
+                        </button>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        // Create paper card HTML
+        function createPaperCard(paper) {
+            const categoryBadge = getCategoryBadge(paper.category);
+            const statusBadge = getStatusBadge(paper.status);
+            const keywordsList = paper.keywords_list ? paper.keywords_list.split(',').map(k => k.trim()) : [];
+            const abstract = paper.article_abstract || '초록 없음';
+            const abstractPreview = abstract.length > 300 ? abstract.substring(0, 300) + '...' : abstract;
+
+            let actionButtons = '';
+            if (paper.status === 'unread') {
+                actionButtons = `
+                    <button class="action-btn btn-confirm" onclick="updateStatus(${paper.cache_id}, 'confirmed')">확인</button>
+                    <button class="action-btn btn-dismiss" onclick="updateStatus(${paper.cache_id}, 'dismissed')">무시</button>
+                `;
+            }
+
+            const doiButton = paper.article_doi ? `
+                <button class="action-btn btn-doi" onclick="openDOI('${paper.article_doi}')">DOI 보기</button>
+            ` : '';
+
+            return `
+                <div class="paper-card">
+                    <div class="paper-header">
+                        ${categoryBadge}
+                        ${statusBadge}
+                        <span class="paper-score">Score: ${paper.similarity_score.toFixed(3)}</span>
+                    </div>
+
+                    <div class="paper-title">${escapeHtml(paper.article_title)}</div>
+
+                    <div class="paper-meta">
+                        <span class="paper-journal" style="--journal-color: ${journalColorMap[paper.journal_id] || '#2c3e50'}; --journal-bg: ${journalColorMap[paper.journal_id] ? journalColorMap[paper.journal_id] + '20' : '#ecf0f1'};">${escapeHtml(paper.journal_name)}</span>
+                        ${paper.article_year ? `<span class="paper-year">• ${paper.article_year}</span>` : ''}
+                    </div>
+
+                    ${keywordsList.length > 0 ? `
+                        <div class="paper-keywords">
+                            ${keywordsList.slice(0, 5).map(k => `<span class="keyword-tag">${escapeHtml(k)}</span>`).join('')}
+                        </div>
+                    ` : ''}
+
+                    <div class="paper-abstract">${escapeHtml(abstractPreview)}</div>
+
+                    <div class="paper-actions">
+                        ${actionButtons}
+                        ${doiButton}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Get category badge
+        function getCategoryBadge(category) {
+            const badges = {
+                'highly_relevant': '<span class="paper-badge badge-highly-relevant">매우 관련 있음</span>',
+                'relevant': '<span class="paper-badge badge-relevant">관련 있음</span>',
+                'moderately_relevant': '<span class="paper-badge badge-moderate">보통 관련</span>'
+            };
+            return badges[category] || '';
+        }
+
+        // Get status badge
+        function getStatusBadge(status) {
+            if (status === 'confirmed') {
+                return '<span class="paper-badge badge-confirmed">확인됨</span>';
+            } else if (status === 'dismissed') {
+                return '<span class="paper-badge badge-dismissed">무시됨</span>';
+            }
+            return '';
+        }
+
+        // Update paper status
+        async function updateStatus(cacheId, status) {
+            try {
+                const response = await fetch(`/api/papers/${cacheId}/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ status })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await loadPapers();
+                }
+            } catch (error) {
+                console.error('Failed to update status:', error);
+            }
+        }
+
+        // Open DOI link
+        function openDOI(doi) {
+            window.open(`https://doi.org/${doi}`, '_blank');
+        }
+
+        // Refresh papers
+        async function refreshPapers() {
+            const btn = document.getElementById('refresh-btn');
+            btn.disabled = true;
+            btn.innerHTML = '🔄 새로고침 중...';
+
+            try {
+                const response = await fetch('/api/refresh', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    await updateJournalCounts();
+                    await loadPapers();
+                }
+            } catch (error) {
+                console.error('Failed to refresh:', error);
+                alert('새로고침 중 오류가 발생했습니다.');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '🔄 새로고침';
+            }
+        }
+
+        // Show error
+        function showError() {
+            const container = document.getElementById('papers-container');
+            container.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-state-icon">⚠️</div>
+                    <div class="empty-state-text">오류가 발생했습니다</div>
+                    <div class="empty-state-hint">잠시 후 다시 시도해주세요</div>
+                </div>
+            `;
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Sort change listener
+        document.getElementById('sort-select').addEventListener('change', loadPapers);
+
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-name">Minsuk Lim</div>
+            <div class="footer-affiliation">PIDJB / JBNU</div>
+            <div>
+                <a href="mailto:iminsuk2018@jbnu.ac.kr" class="footer-email">iminsuk2018@jbnu.ac.kr</a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

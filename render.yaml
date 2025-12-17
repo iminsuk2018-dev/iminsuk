@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: pdf-research-app
+    env: python
+    buildCommand: pip install -r requirements-web.txt
+    startCommand: gunicorn --chdir web --bind 0.0.0.0:$PORT app:app
+    plan: free
+    healthCheckPath: /
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
